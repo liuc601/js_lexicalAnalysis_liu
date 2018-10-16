@@ -1,0 +1,12 @@
+{
+  "name": "lexicalanalysis",
+  "version": "1.0.0",
+  "description": "\"词法分析器的实现js版本，学习用\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev":"node ./src/index.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
