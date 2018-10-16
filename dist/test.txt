@@ -1,1 +1,1 @@
-[{"token":"keyword","value":"var"},{"token":"identifier","value":"a1k"},{"token":"identifier","value":"ifsjei"},{"token":"identifier","value":"_sej1"},{"token":"identifier","value":"_1"}]
+[{"token":"keyword","value":"var"},{"token":"identifier","value":"a"},{"token":"operationalAndDelimiter","value":"="}]

@@ -31,8 +31,25 @@ const keywordArray = ['break', 'else', 'new', 'var', 'case', 'finally',
     'if', 'throw', 'delete', 'in',
     'try', 'do', 'instranceof', 'typeof'
 ]
-const Letter = new RegExp('[a-zA-Z]'); //字母开头的标识符匹配正则，只能字母开头，字母不区分大小写，后面可以拼接任意多个的字母和数字，或者
-const isOperational = new RegExp(''); //字母识别正则，
+const isDigit = new RegExp('[0-9]'); //常量识别的正则
+const operationalCharacter = ["+", "-", "*", "/", "<", "<=", ">", ">=", "=", "==",
+    "!=", ";", "(", ")", "^", ",", '"', "'", "#", "&",
+    "&&", "|", "||", "%", "~", "<<", ">>", "[", "]", "{",
+    "}", "/", ".", "?", ":", "!"
+]
+const isOperationalCharacter = (str) => {
+    let flag = false;
+    operationalCharacter.forEach(item => {
+        if (item === str) {
+            flag = true;
+            return
+        }
+    });
+    return flag;
+}; //用正则来判断是否为运算符
+
+
+
 function lexicalAnalysis(data) {
     console.log("词法分析器获取到的数据", data);
     var tokenArray = [],
@@ -48,11 +65,11 @@ function lexicalAnalysis(data) {
         return str;
     }
 
-    function saveToken(o) {
+    function saveToken(o) { //保存token
         tokenArray.push(o);
     }
 
-    function identificationChar() {
+    function doIdentificationChar() { //识别标识符
         if (isLetter.test(nowStr)) { //如果是字母的话，继续获取，直到下一个空格
             let o = {
                 token: 'identifier',
@@ -76,7 +93,7 @@ function lexicalAnalysis(data) {
         }
     };
 
-    function isKeyword(str) {//识别关键字
+    function isKeyword(str) { //识别关键字
         let flag = false;
         keywordArray.forEach(item => {
             if (item === str) {
@@ -86,15 +103,57 @@ function lexicalAnalysis(data) {
         return flag;
     }
 
+    function doDigit() { //用来识别和处理常量
+        let o = {
+            token: 'operationalAndDelimiter',
+            value: ''
+        }
+        while (true) {
+            o.value += nowStr;
+            nowStr = nextChar();
+            if (!~nowStr) { //如果没有下一个字符，就直接跳出
+                break;
+            }
+            if (!isOperationalCharacter(nowStr)) {
+                saveToken(o);
+                i--;
+                break;
+            }
+        }
+    }
+    function doOperationalCharacter() { //用来识别运算符
+        let o = {
+            token: 'operationalAndDelimiter',
+            value: ''
+        }
+        while (true) {
+            o.value += nowStr;
+            nowStr = nextChar();
+            if (!~nowStr) { //如果没有下一个字符，就直接跳出
+                break;
+            }
+            if (!isOperationalCharacter(nowStr)) {
+                saveToken(o);
+                i--;
+                break;
+            }
+        }
+    }
+
     do {
         nowStr = nextChar();
-        if (nowStr === " ") {
+        if (nowStr === " " || nowStr === -1) {
             continue
         }
         if (isLetter.test(nowStr)) { //判断下应该进入什么识别判断
-            identificationChar();
+            doIdentificationChar();
+        } else if (isDigit.test(nowStr)) {
+            i++
+        } else if (isOperationalCharacter(nowStr)) {
+            doOperationalCharacter();
         } else {
-            throw '不能识别的标识符'
+            console.log(tokenArray);
+            throw '不能识别的标识符: ' + nowStr
         }
     } while (!!~nowStr);
     return tokenArray

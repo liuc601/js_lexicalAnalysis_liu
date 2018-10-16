@@ -1,1 +1,1 @@
-var a1k ifsjei _sej1 _1 aaa1kkkk
+var a=1;
