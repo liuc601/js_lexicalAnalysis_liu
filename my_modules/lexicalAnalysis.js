@@ -37,7 +37,7 @@ const operationalCharacter = ["+", "-", "*", "/", "<", "<=", ">", ">=", "=", "==
     "&&", "|", "||", "%", "~", "<<", ">>", "[", "]", "{",
     "}", "/", ".", "?", ":", "!"
 ]
-const isDoubleOperationalCharacter=new RegExp('\\+|\\-|\\<|\\>|\\=|\\!|\\&|\\|');
+const isDoubleOperationalCharacter = new RegExp('\\+|\\-|\\<|\\>|\\=|\\!|\\&|\\|');
 const isTabs = new RegExp('\\n|\\r'); //识别制表符
 const isOperationalCharacter = (str) => {
     let flag = false;
@@ -53,7 +53,7 @@ const isOperationalCharacter = (str) => {
 
 
 function lexicalAnalysis(data) {
-    console.log("词法分析器获取到的数据", data);
+    // console.log("词法分析器获取到的数据", data);
     var tokenArray = [],
         i = -1,
         nowStr;
@@ -71,10 +71,36 @@ function lexicalAnalysis(data) {
         tokenArray.push(o);
     }
 
-    function doAnnotation(){//处理注释
-        console.log("获取到了",data.match(/\/\/.*/),"获取到了");
-        data.replace(/\/\/.*/ig,'');
-        data.replace(/\/\*.*\*\//ig,'');
+    function doAnnotation(str) { //处理注释
+        //match(/\/\*(.|\s)*\*\//ig)
+        let o = {
+            token: 'annotation',
+            value: ''
+        }
+        if (str == "/*") {
+            while (true) {
+                nowStr = nextChar();
+                if (nowStr === '*') {
+                    nowStr = nextChar();
+                    if (nowStr === '/') {
+                        saveToken(o);
+                        nowStr = nextChar();
+                        break
+                    }
+                    o.value += '*';
+                }
+                o.value += nowStr;
+            }
+        } else if (str == "//") {
+            while (true) {
+                nowStr = nextChar();
+                if (nowStr === '\\n') {
+                    saveToken(o);
+                    break
+                }
+                o.value += nowStr;
+            }
+        }
     }
 
     function doIdentificationChar() { //识别标识符
@@ -128,6 +154,7 @@ function lexicalAnalysis(data) {
             }
             if (!isDigit.test(nowStr)) {
                 if (isLetterS.test(nowStr)) {
+                    console.log(tokenArray);
                     throw '语法错误，数字后面不允许跟随标识符 ： ' + nowStr
                 }
                 saveToken(o);
@@ -150,7 +177,7 @@ function lexicalAnalysis(data) {
                 i--;
                 break;
             }
-            if(!isDoubleOperationalCharacter.test(o.value)){
+            if (!isDoubleOperationalCharacter.test(o.value)) {
                 saveToken(o);
                 i--;
                 break;
@@ -188,11 +215,21 @@ function lexicalAnalysis(data) {
     }
     //运行主函数
     do {
-        doAnnotation();
         nowStr = nextChar();
-        console.log(nowStr);
+        // console.log(nowStr);
         if (nowStr === " " || nowStr === -1) {
             continue
+        }
+        if (nowStr === "/") { //进入注释判断
+            nowStr = nextChar();
+            if (nowStr === '*') {
+                doAnnotation("/*");
+            } else if (nowStr === '/') {
+                doAnnotation("//");
+            } else {
+                nowStr = "/";
+                i--;
+            }
         }
         if (isLetter.test(nowStr)) { //判断下应该进入什么识别判断
             doIdentificationChar();
@@ -204,7 +241,7 @@ function lexicalAnalysis(data) {
             doTabs();
         } else { //报错输出不能识别的符号
             console.log(tokenArray);
-            throw '不能识别的标识符:'+ nowStr 
+            throw '不能识别的标识符:' + nowStr
         }
     } while (!!~nowStr);
     return tokenArray

@@ -1,4 +1,4 @@
-/* 
+/*666 
     词法分析器识别五类符号：标识符(包含关键字)，常数，运算符，界限符
 
     标识符：由大小写字母，还有下划线_,$还有数字组成。开头不允许出现数字。
@@ -69,6 +69,12 @@ function lexicalAnalysis(data) {
 
     function saveToken(o) { //保存token
         tokenArray.push(o);
+    }
+
+    function doAnnotation(){//处理注释
+        console.log("获取到了",data.match(/\/\*(.|\s)*\*\//ig),"获取到了");
+        // data.replace(/\/\/.*/ig,'');
+        data=data.replace(/\/\*(.|\s)*\*\//ig,'');
     }
 
     function doIdentificationChar() { //识别标识符
@@ -182,6 +188,7 @@ function lexicalAnalysis(data) {
     }
     //运行主函数
     do {
+        doAnnotation();
         nowStr = nextChar();
         console.log(nowStr);
         if (nowStr === " " || nowStr === -1) {
@@ -195,7 +202,6 @@ function lexicalAnalysis(data) {
             doOperationalCharacter();
         } else if (isTabs.test(nowStr)) {
             doTabs();
-            console.log("制表符");
         } else { //报错输出不能识别的符号
             console.log(tokenArray);
             throw '不能识别的标识符:'+ nowStr 
