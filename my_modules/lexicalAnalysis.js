@@ -32,11 +32,16 @@ const keywordArray = ['break', 'else', 'new', 'var', 'case', 'finally',
     'try', 'do', 'instranceof', 'typeof'
 ]
 const isDigit = new RegExp('[\-0-9\.]'); //常量识别的正则
+// 运算符
 const operationalCharacter = ["+", "-", "*", "/", "<", "<=", ">", ">=", "=", "==",
-    "!=", "+=", "-=", "++", "--", ";", "(", ")", "^", ",", '"', "'", "#", "&",
-    "&&", "|", "||", "%", "~", "<<", ">>", "[", "]", "{",
-    "}", "/", ".", "?", ":", "!"
+    "===", "!=", "+=", "-=", "++", "--", ";", "(", ")", "^", "#", "&",
+    "&&", "|", "||", "%", "~", "<<", ">>", "/", ".", "?", ":", "!"
 ]
+// 界限和包裹符号,加上注释
+const delimiterAndWarp = [
+    "[", "]", "{", "}", '"', "'", "/*", "*/", "//", ","
+]
+
 const isDoubleOperationalCharacter = new RegExp('\\+|\\-|\\<|\\>|\\=|\\!|\\&|\\|');
 const isTabs = new RegExp('\\n|\\r'); //识别制表符
 const isOperationalCharacter = (str) => {
@@ -97,6 +102,53 @@ function lexicalAnalysis(data) {
                 if (nowStr === '\\n') {
                     saveToken(o);
                     break
+                }
+                o.value += nowStr;
+            }
+        }
+    }
+
+    function getWarpContent(endString) {
+        let o = {
+            token: 'annotation', //注释
+            value: ''
+        }
+        /* 
+        warpType:
+        /*    //    ''    ""   
+        
+        */
+        if (endString === "*/") {
+            while (true) {
+                nowStr = nextChar();
+                if (!~nowStr) { //如果没有下一个字符，就直接跳出
+                    saveToken(o);
+                    i--;
+                    break;
+                }
+                if (nowStr === "*") {
+                    nowStr = nextChar();
+                    if (nowStr == "/") {
+                        saveToken(o);
+                        i--;
+                        break;
+                    }
+                    o.value += "*";
+                }
+                o.value += nowStr;
+            }
+        } else if (endString === "//") {
+            while (true) {
+                nowStr = nextChar();
+                if (!~nowStr) { //如果没有下一个字符，就直接跳出
+                    saveToken(o);
+                    i--;
+                    break;
+                }
+                if (nowStr === "\\n") {
+                    saveToken(o);
+                    i--;
+                    break;
                 }
                 o.value += nowStr;
             }
@@ -166,7 +218,7 @@ function lexicalAnalysis(data) {
 
     function doOperationalCharacter() { //用来识别运算符
         let o = {
-            token: 'operationalAndDelimiter',
+            token: 'operational', //运算符
             value: ''
         }
         while (true) {
@@ -177,15 +229,11 @@ function lexicalAnalysis(data) {
                 i--;
                 break;
             }
-            if (!isDoubleOperationalCharacter.test(o.value)) {
-                saveToken(o);
-                i--;
-                break;
-            }
-            if (o.value.length >= 2 || !isOperationalCharacter(nowStr)) {
-                if (!isOperationalCharacter(o.value)) { //虽已被识别，未是定界符
-                    throw '非法定界符 ： ' + o.value
-                }
+            let s = o.value + nowStr;
+            if (!isOperationalCharacter(s)) {
+                // if(isOperationalCharacter(nowStr)){
+                //     throw '运算符语法错误:' + s
+                // }
                 saveToken(o);
                 i--;
                 break;
@@ -220,18 +268,17 @@ function lexicalAnalysis(data) {
         if (nowStr === " " || nowStr === -1) {
             continue
         }
-        if (nowStr === "/") { //进入注释判断
+        if (nowStr == "/") {
             nowStr = nextChar();
-            if (nowStr === '*') {
-                doAnnotation("/*");
-            } else if (nowStr === '/') {
-                doAnnotation("//");
+            if (nowStr == "*") {
+                getWarpContent("*/");
+            } else if (nowStr == "/") {
+                getWarpContent("//");
             } else {
-                nowStr = "/";
                 i--;
+                nowStr = "/"
             }
-        }
-        if (isLetter.test(nowStr)) { //判断下应该进入什么识别判断
+        } else if (isLetter.test(nowStr)) { //判断下应该进入什么识别判断
             doIdentificationChar();
         } else if (isDigit.test(nowStr)) { //数字判断与识别
             doDigit();
