@@ -76,7 +76,7 @@ function lexicalAnalysis(data) {
         tokenArray.push(o);
     }
 
-    function doAnnotation(str) { //处理注释
+    function autoGetContent(str) { //自动获取内容
         //match(/\/\*(.|\s)*\*\//ig)
         let o = {
             token: 'annotation',
@@ -109,6 +109,7 @@ function lexicalAnalysis(data) {
     }
 
     function getWarpContent(endString) {
+        //传进来配置，控制这个函数的内容获取
         let o = {
             token: 'annotation', //注释
             value: ''

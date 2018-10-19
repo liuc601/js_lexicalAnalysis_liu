@@ -32,3 +32,35 @@
         digit*
 
 ### 2，确定需要用的函数，还有需要识别的一些数据的类型
+
+### 3,自动获取内容的函数
+    定义各种类型的判断条件和结束条件，已经错误条件和错误处理
+    类型判断函数：
+        function getType(str){
+            ...  类型判断的条件，使用数组来进行引用
+            return type
+        }
+
+    类型定义对象
+
+    typeObj={
+        "digit":{
+            type:'digit',
+            validationFunctions:function(str){
+                const isDigit = new RegExp('[\-0-9\.]');
+                return isDigit.test(str);
+            },
+            endCondition:"!isDigit",//遇到非数字的就结束
+            errString:'isLetter',//后面不能跟字母，遇到字母就直接报错
+            errFunction:function(){
+                thnow "后面不允许跟随字母"
+            },
+
+        }
+    },
+    根据类型然后再调用方法
+    function main(){
+        autoGetContent(typeObj[getType(nowStr)]);
+    }
+    main();
+    起始，先判断条件，之后根据类型传递配置给内容自动获取函数
