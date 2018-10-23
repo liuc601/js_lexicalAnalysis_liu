@@ -24,32 +24,50 @@
 */
 require('./addArrayFn')(); //添加一些自定义的数组方法
 
-//数字正则及判断函数
+/* 
+    识别数字
+*/
 const digit = new RegExp('[\-0-9\.]'); //定义常量的正则
 function isDigit(str) { //判断是否为数字
     return digit.test(str);
-
 }
-const digitType={
-    type:'digit',//类型
-    isType:isDigit,//判断函数
-    endString:' ',
-    errString:'',//错误字符
-    errFn:function(){//错误处理函数
+const digitType = {
+    type: 'digit', //类型
+    isType: isDigit, //判断函数
+    endString: ' ',
+    errString: '', //错误字符
+    errFn: function () { //错误处理函数
 
     },
-    getContent:function(){
+    getContent: function () {
         /* 自动机，获取内容的函数可能要单独写一个函数，之后传入配置。来进行获取内容和处理内容 */
 
     }
 }
 
-//字母正则及判断函数
+/* 
+    识别标识符
+*/
 const letter = new RegExp('[a-zA-Z_$]'); //定义标识符的正则
+const letterSecond = new RegExp('[0-9a-zA-Z_$]'); //标识符第二个开始的字符，
 function isLetter(str) {
     return letter.test(str);
 }
-const isLetterS = new RegExp('[0-9a-zA-Z_$]'); //字母识别正则，
+
+function isLetterSecond(str) {
+    return letterSecond.test(str);
+}
+const letterType = {
+    type: 'letter', //类型
+    isType: isLetter, //判断函数
+    endString: ' ',
+    errString: '', //错误字符
+    errFn: function () { //错误处理函数
+    },
+    callback:function(){
+        
+    }
+}
 
 //关键词的数组和判断函数
 const keywordArray = ['break', 'else', 'new', 'var', 'case', 'finally',
@@ -63,42 +81,79 @@ function isKeyword(str) { //识别关键字
     return keywordArray.isHas(str);
 }
 
-// 运算符
+/* 
+    识别运算符
+*/
+
 const operationalCharacter = ["+", "-", "*", "/", "<", "<=", ">", ">=", "=", "==",
     "===", "!=", "+=", "-=", "++", "--", ";", "(", ")", "[", "]", "{", "}", "^", "#", "&",
     "&&", "|", "||", "%", "~", "<<", ">>", "/", ".", "?", ":", "!", ","
 ]
+
 const isOperationalCharacter = (str) => {
     return operationalCharacter.isHas(str);
-}; //用正则来判断是否为运算符
+}; 
 
-// 界限和包裹符号,加上注释
+const operationalCharacterType = {
+    type: 'operationalCharacter', //类型
+    isType: isOperationalCharacter, //判断函数
+    endString: ' ',
+    errString: '', //错误字符
+    errFn: function () { //错误处理函数
+    },
+    getContent: function () {
+    }
+}
+/* 
+    识别界限和包裹符号,加上注释
+*/
 const delimiterAndWarp = [
     '"', "'", "/*", "*/", "//"
 ]
-function isDelimiter(str){
+function isDelimiter(str) {
     return delimiterAndWarp.isHas(str);
 }
+const delimiterType = {
+    type: 'delimiter', //类型
+    isType: isDelimiter, //判断函数
+    endString: ' ',
+    errString: '', //错误字符
+    errFn: function () { //错误处理函数
+    },
+    getContent: function () {
+    }
+}
 
+/* 
+    识别空格
+*/
 const tabs = new RegExp('\\n|\\r'); //识别制表符
 function isTabs(str) {
     return tabs.test(str);
 }
 
-function stringType(str){//判断传进来的字符类型
-    let typeArray=[isDelimiter,isTabs,isDigit,isLetter,isOperationalCharacter,isTabs];
-    var flag=false;
-    typeArray.forEach(item=>{
-        if(item(str)){
-            flag=true;
+const tabsType = {
+    type: 'tabs', //类型
+    isType: isTabs, //判断函数
+    endString: ' ',
+    errString: '', //错误字符
+    errFn: function () { //错误处理函数
+    },
+    getContent: function () {
+    }
+}
+
+function stringType(str) { //判断传进来的字符类型
+    let typeArray = [delimiterType,operationalCharacterType, tabsType, digitType, letterType];
+    var type;
+    typeArray.forEach(item => {
+        if (item.isType(str)) {
+            type=item.type;
             return;
         }
     });
-    return flag;
+    return type;
 }
-
-
-
 
 function lexicalAnalysis(data) {
     // console.log("词法分析器获取到的数据", data);
@@ -119,34 +174,18 @@ function lexicalAnalysis(data) {
         tokenArray.push(o);
     }
 
-    function autoGetContent(str) { //自动获取内容
-        //match(/\/\*(.|\s)*\*\//ig)
-        let o = {
-            token: 'annotation',
-            value: ''
+    function autoGetContent(typeObj) { //自动获取内容
+        const token={
+            type:typeObj.type,
+            value:''
         }
-        if (str == "/*") {
-            while (true) {
-                nowStr = nextChar();
-                if (nowStr === '*') {
-                    nowStr = nextChar();
-                    if (nowStr === '/') {
-                        saveToken(o);
-                        nowStr = nextChar();
-                        break
-                    }
-                    o.value += '*';
-                }
-                o.value += nowStr;
-            }
-        } else if (str == "//") {
-            while (true) {
-                nowStr = nextChar();
-                if (nowStr === '\\n') {
-                    saveToken(o);
-                    break
-                }
-                o.value += nowStr;
+        while(true){
+            token.value+=nowStr;
+            nowStr = nextChar();
+            if(!~nowStr||!typeObj.isType(nowStr)){//一直识别，如果不是当前需要的内容，就开始特殊处理
+                saveToken(token);
+                i--;
+                break
             }
         }
     }
@@ -157,11 +196,6 @@ function lexicalAnalysis(data) {
             token: 'annotation', //注释
             value: ''
         }
-        /* 
-        warpType:
-        /*    //    ''    ""   
-        
-        */
         if (endString === "*/") {
             while (true) {
                 nowStr = nextChar();
@@ -275,56 +309,47 @@ function lexicalAnalysis(data) {
         }
     }
 
-    function doTabs() {
-        let o = {
-            token: 'tabs',
-            value: ''
-        }
-        while (true) {
-            o.value += nowStr;
-            nowStr = nextChar();
-            if (!~nowStr) { //如果没有下一个字符，就直接跳出
-                saveToken(o);
-                i--;
-                break;
-            }
-            if (!isTabs.test(nowStr)) {
-                saveToken(o);
-                i--;
-                break;
-            }
-        }
-    }
     //运行主函数
-    do {
-        nowStr = nextChar();
-        // console.log(nowStr);
-        if (nowStr === " " || nowStr === -1) {
-            continue
-        }
-        if (nowStr == "/") {
+    function main() {
+        var typeObj={
+            'delimiter':delimiterType,
+            'operationalCharacter':operationalCharacterType, 
+            'tabs':tabsType, 
+            'digit':digitType, 
+            'letter':letterType
+        };
+        do {
             nowStr = nextChar();
-            if (nowStr == "*") {
-                getWarpContent("*/");
-            } else if (nowStr == "/") {
-                getWarpContent("//");
-            } else {
-                i--;
-                nowStr = "/"
+            // console.log(nowStr);
+            if (nowStr === " " || nowStr === -1) {
+                continue
             }
-        } else if (isLetter.test(nowStr)) { //判断下应该进入什么识别判断
-            doIdentificationChar();
-        } else if (isDigit.test(nowStr)) { //数字判断与识别
-            doDigit();
-        } else if (isOperationalCharacter(nowStr)) { //定界符的识别和判断
-            doOperationalCharacter();
-        } else if (isTabs.test(nowStr)) {
-            doTabs();
-        } else { //报错输出不能识别的符号
-            console.log(tokenArray);
-            throw '不能识别的标识符:' + nowStr
-        }
-    } while (!!~nowStr);
-    return tokenArray
+            autoGetContent(typeObj[stringType(nowStr)]);
+            // if (nowStr == "/") {
+            //     nowStr = nextChar();
+            //     if (nowStr == "*") {
+            //         getWarpContent("*/");
+            //     } else if (nowStr == "/") {
+            //         getWarpContent("//");
+            //     } else {
+            //         i--;
+            //         nowStr = "/"
+            //     }
+            // } else if (isLetter.test(nowStr)) { //判断下应该进入什么识别判断
+            //     doIdentificationChar();
+            // } else if (isDigit.test(nowStr)) { //数字判断与识别
+            //     doDigit();
+            // } else if (isOperationalCharacter(nowStr)) { //定界符的识别和判断
+            //     doOperationalCharacter();
+            // } else if (isTabs.test(nowStr)) {
+            //     doTabs();
+            // } else { //报错输出不能识别的符号
+            //     console.log(tokenArray);
+            //     throw '不能识别的标识符:' + nowStr
+            // }
+        } while (!!~nowStr);
+        return tokenArray
+    }
+    return main()
 }
 module.exports = lexicalAnalysis;
