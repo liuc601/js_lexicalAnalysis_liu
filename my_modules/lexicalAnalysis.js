@@ -22,38 +22,81 @@
     界限符：/*,//,(),{,},[,],",",'
 
 */
+require('./addArrayFn')(); //添加一些自定义的数组方法
 
-const isLetter = new RegExp('[a-zA-Z_$]'); //字母识别正则，
+//数字正则及判断函数
+const digit = new RegExp('[\-0-9\.]'); //定义常量的正则
+function isDigit(str) { //判断是否为数字
+    return digit.test(str);
+
+}
+const digitType={
+    type:'digit',//类型
+    isType:isDigit,//判断函数
+    endString:' ',
+    errString:'',//错误字符
+    errFn:function(){//错误处理函数
+
+    },
+    getContent:function(){
+        /* 自动机，获取内容的函数可能要单独写一个函数，之后传入配置。来进行获取内容和处理内容 */
+
+    }
+}
+
+//字母正则及判断函数
+const letter = new RegExp('[a-zA-Z_$]'); //定义标识符的正则
+function isLetter(str) {
+    return letter.test(str);
+}
 const isLetterS = new RegExp('[0-9a-zA-Z_$]'); //字母识别正则，
+
+//关键词的数组和判断函数
 const keywordArray = ['break', 'else', 'new', 'var', 'case', 'finally',
     'return', 'void', 'catch', 'for', 'switch',
     'while', 'continue', 'function', 'this', 'with', 'default',
     'if', 'throw', 'delete', 'in',
     'try', 'do', 'instranceof', 'typeof'
-]
-const isDigit = new RegExp('[\-0-9\.]'); //常量识别的正则
+];
+
+function isKeyword(str) { //识别关键字
+    return keywordArray.isHas(str);
+}
+
 // 运算符
 const operationalCharacter = ["+", "-", "*", "/", "<", "<=", ">", ">=", "=", "==",
-    "===", "!=", "+=", "-=", "++", "--", ";", "(", ")", "^", "#", "&",
-    "&&", "|", "||", "%", "~", "<<", ">>", "/", ".", "?", ":", "!"
+    "===", "!=", "+=", "-=", "++", "--", ";", "(", ")", "[", "]", "{", "}", "^", "#", "&",
+    "&&", "|", "||", "%", "~", "<<", ">>", "/", ".", "?", ":", "!", ","
 ]
+const isOperationalCharacter = (str) => {
+    return operationalCharacter.isHas(str);
+}; //用正则来判断是否为运算符
+
 // 界限和包裹符号,加上注释
 const delimiterAndWarp = [
-    "[", "]", "{", "}", '"', "'", "/*", "*/", "//", ","
+    '"', "'", "/*", "*/", "//"
 ]
+function isDelimiter(str){
+    return delimiterAndWarp.isHas(str);
+}
 
-const isDoubleOperationalCharacter = new RegExp('\\+|\\-|\\<|\\>|\\=|\\!|\\&|\\|');
-const isTabs = new RegExp('\\n|\\r'); //识别制表符
-const isOperationalCharacter = (str) => {
-    let flag = false;
-    operationalCharacter.forEach(item => {
-        if (item === str) {
-            flag = true;
-            return
+const tabs = new RegExp('\\n|\\r'); //识别制表符
+function isTabs(str) {
+    return tabs.test(str);
+}
+
+function stringType(str){//判断传进来的字符类型
+    let typeArray=[isDelimiter,isTabs,isDigit,isLetter,isOperationalCharacter,isTabs];
+    var flag=false;
+    typeArray.forEach(item=>{
+        if(item(str)){
+            flag=true;
+            return;
         }
     });
     return flag;
-}; //用正则来判断是否为运算符
+}
+
 
 
 
@@ -181,16 +224,6 @@ function lexicalAnalysis(data) {
             }
         }
     };
-
-    function isKeyword(str) { //识别关键字
-        let flag = false;
-        keywordArray.forEach(item => {
-            if (item === str) {
-                flag = true;
-            }
-        });
-        return flag;
-    }
 
     function doDigit() { //用来识别和处理常量
         let o = {
