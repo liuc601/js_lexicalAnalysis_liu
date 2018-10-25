@@ -109,9 +109,30 @@ function lexicalAnalysis(data) {
         isType: isOperationalCharacter, //判断函数
         endString: ' ',
         errString: '', //错误字符
-        errFn: function () { //错误处理函数
+        errFn(str) { //错误处理函数
+            throw '语法错误'+str
         },
-        callback: function (obj) { //识别结束之后的回调函数
+        before(obj, nowStr) { //验证
+            // if(obj.type=='operationalCharacter'){
+                // console.log("识别到全等福",obj.value);
+            if (obj.value.length == 2) {
+                if (obj.value == '==') {
+                    return nowStr
+                } else {
+                    return -1
+                }
+            } else if (obj.value.length >= 3 ) {
+                if(obj.value=='==='){
+                    return nowStr
+                }else{
+                    this.errFn(obj.value[obj.value.length-1]);
+                }
+            } else {
+                return nowStr
+            }
+            // }
+        },
+        callback(obj) { //识别结束之后的回调函数
             if (obj.value == "/*") { //注释符开始
                 obj.value = '';
                 while (true) {
@@ -216,6 +237,9 @@ function lexicalAnalysis(data) {
     }
 
     function autoGetContent(typeObj) { //自动获取内容
+        console.log(typeObj.type);
+        //判断一个字符是什么类型之后，就进入这个函数，这个函数根据传进来的类型进行识别
+        // console.log('1111');
         const token = {
             type: typeObj.type,
             value: ''
@@ -223,10 +247,12 @@ function lexicalAnalysis(data) {
         while (true) {
             token.value += nowStr;
             nowStr = nextChar();
+            nowStr = typeObj.before == undefined ? nowStr : typeObj.before(token, nowStr); //调用回调函数
             if (!~nowStr || !typeObj.isType(nowStr, 'while')) { //一直识别，如果不是当前需要的内容，就开始特殊处理
                 saveToken(token);
                 i--;
                 typeObj.callback && typeObj.callback(token); //调用回调函数
+                // console.log('这样子就没了？');
                 break
             }
         }

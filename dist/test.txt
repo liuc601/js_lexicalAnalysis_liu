@@ -1,1 +1,1 @@
-[{"type":"operationalCharacter","value":"/**********"},{"type":"digit","value":"111"},{"type":"operationalCharacter","value":"?!"},{"type":"letter","value":"sjeuifji"},{"type":"operationalCharacter","value":"*/"},{"type":"tabs","value":"\r\n"},{"type":"operationalCharacter","value":"11111"}]
+[{"type":"operationalCharacter","value":"+="}]
