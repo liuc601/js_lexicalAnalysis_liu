@@ -28,7 +28,7 @@ function lexicalAnalysis(data) {
     // console.log("词法分析器获取到的数据", data);
     var tokenArray = [],
         i = -1,
-        nowStr;
+        nowChar;
     /* 
         识别数字
     */
@@ -44,9 +44,17 @@ function lexicalAnalysis(data) {
         errFn: function () { //错误处理函数
 
         },
-        getContent: function () {
-            /* 自动机，获取内容的函数可能要单独写一个函数，之后传入配置。来进行获取内容和处理内容 */
-
+        getContent: function (token) {
+            while (true) {
+                nextChar();
+                if (nowChar == -1 || !isDigit(nowChar)) {
+                    token.type = "digit"
+                    saveToken(token);
+                    i--;
+                    break;
+                }
+                token.value += nowChar;
+            }
         }
     }
     /* 
@@ -70,21 +78,32 @@ function lexicalAnalysis(data) {
         isType: isLetter, //判断函数
         endString: ' ',
         errString: '', //错误字符
+        getContent(token) {
+            while (true) {
+                nextChar();
+                if (nowChar == -1 || !isLetterSecond(nowChar)) {
+                    if (isKeyword(token.value)) {
+                        token.type = "keyword"
+                    } else {
+                        token.type = "letter"
+                    }
+                    saveToken(token);
+                    i--;
+                    break;
+                }
+                token.value += nowChar;
+            }
+        },
         errFn: function () { //错误处理函数
         },
-        callback: function (obj) { //识别结束之后的回调函数
-            if (isKeyword(obj.value)) {
-                obj.type = "keyword";
-            }
-        }
     }
 
     //关键词的数组和判断函数
     const keywordArray = ['break', 'else', 'new', 'var', 'case', 'finally',
         'return', 'void', 'catch', 'for', 'switch',
         'while', 'continue', 'function', 'this', 'with', 'default',
-        'if', 'throw', 'delete', 'in',
-        'try', 'do', 'instranceof', 'typeof'
+        'if', 'throw', 'delete', 'in', 'require',
+        'try', 'do', 'instranceof', 'typeof','exports'
     ];
 
     function isKeyword(str) { //识别关键字
@@ -97,7 +116,7 @@ function lexicalAnalysis(data) {
 
     const operationalCharacter = ["+", "-", "*", "/", "<", "<=", ">", ">=", "=", "==",
         "===", "!=", "+=", "-=", "++", "--", ";", "(", ")", "[", "]", "{", "}", "^", "#", "&",
-        "&&", "|", "||", "%", "~", "<<", ">>", "/", ".", "?", ":", "!", ","
+        "&&", "|", "||", "%", "~", "<<", ">>", "/", ".", "?", ":", "!", ",", '"', "'"
     ]
 
     const isOperationalCharacter = (str) => {
@@ -110,71 +129,105 @@ function lexicalAnalysis(data) {
         endString: ' ',
         errString: '', //错误字符
         errFn(str) { //错误处理函数
-            throw '语法错误'+str
+            console.log(tokenArray);
+            throw '语法错误,不能识别的符号：' + str
         },
-        before(obj, nowStr) { //验证
-            // if(obj.type=='operationalCharacter'){
-                // console.log("识别到全等福",obj.value);
-            if (obj.value.length == 2) {
-                if (obj.value == '==') {
-                    return nowStr
+        getContent(token) {
+            if (token.value == '/') {
+                nextChar();
+                if (nowChar == '*') {
+                    token.value = '';
+                    while (true) {
+                        nextChar();
+                        if (nowChar == '*') {
+                            nextChar();
+                            if (nowChar == '/') {
+                                token.type = "annotation"
+                                saveToken(token);
+                                break;
+                            } else {
+                                i--;
+                                nowChar = '*'
+                            }
+                        }
+                        token.value += nowChar;
+                    }
+                } else if (nowChar == '/') {
+                    token.value = '';
+                    while (true) {
+                        nextChar();
+                        if (nowChar == -1 || nowChar == '\r') {
+                            token.type = "annotation"
+                            saveToken(token);
+                            break;
+                        }
+                        token.value += nowChar;
+                    }
                 } else {
-                    return -1
+                    i--;
+                    saveToken(token);
                 }
-            } else if (obj.value.length >= 3 ) {
-                if(obj.value=='==='){
-                    return nowStr
-                }else{
-                    this.errFn(obj.value[obj.value.length-1]);
+            } else if (token.value == "'") {
+                token.value = '';
+                while (true) {
+                    nextChar();
+                    if (nowChar == -1) {
+                        throw '字符串没有结尾';
+                    }
+                    if (nowChar == "'") {
+                        token.type = "string"
+                        saveToken(token);
+                        break;
+                    }
+                    token.value += nowChar;
+                }
+            } else if (token.value == '"') {
+                token.value = '';
+                while (true) {
+                    nextChar();
+                    if (nowChar == -1) {
+                        throw '字符串没有结尾';
+                    }
+                    if (nowChar == '"') {
+                        token.type = "string"
+                        saveToken(token);
+                        break;
+                    }
+                    token.value += nowChar;
                 }
             } else {
-                return nowStr
+                while (true) {
+                    let a = '';
+                    nextChar();
+                    if (!isOperationalCharacter(nowChar)) {
+                        saveToken(token);
+                        i--;
+                        break;
+                    }
+                    a = token.value + nowChar
+                    if (!isOperationalCharacter(a)) {
+                        saveToken(token);
+                        i--;
+                        break;
+                    }
+                    token.value = a;
+
+                }
             }
-            // }
+        },
+        before(obj, nowChar) { //验证
+            //所有进入操作符的判断都要进行边界符的判断
         },
         callback(obj) { //识别结束之后的回调函数
-            if (obj.value == "/*") { //注释符开始
-                obj.value = '';
-                while (true) {
-                    nowStr = nextChar();
-                    if (!~nowStr) return;
-                    if (nowStr == "*") {
-                        nowStr = nextChar();
-                        if (nowStr == '/') {
-                            obj.type = "annotation";
-                            // console.log('?????',tokenArray);
-                            // saveToken(obj);
-                            // console.log('?????',tokenArray);
-                            break;
-                        }
-                        nowStr = '*'
-                        i--;
-                    }
-                    obj.value += nowStr;
-                }
-            } else if (obj.value == "//") {
-                obj.value = '';
-                while (true) {
-                    nowStr = nextChar();
-                    // console.log("sssss",nowStr == "\r");
-                    if (!~nowStr) return;
-                    if (nowStr == "\r") {
-                        nowStr = nextChar();
-                        if (nowStr == '\n') {
-                            obj.type = "annotation";
-                            // saveToken(obj);
-                            break;
-                        }
-                        nowStr = '\r'
-                        i--;
-                    }
-                    obj.value += nowStr;
-                }
+            if (!this.isType(obj.value)) {
+                this.errFn(obj.value);
             }
         }
     }
     /* 
+
         识别界限和包裹符号,加上注释
+
     */
     const delimiterAndWarp = [
         '"', "'", "/*", "*/", "//"
@@ -190,7 +243,15 @@ function lexicalAnalysis(data) {
         errString: '', //错误字符
         errFn: function () { //错误处理函数
         },
-        getContent: function () {}
+        before(obj, nowChar) { //验证
+            if (obj.value == '/*' || obj.value == '//' || obj.value == '"' || obj.value == "'") {
+                return -1
+            } else {
+                return nowChar
+            }
+        },
+        callback() { //识别结束之后的回调函数
+        }
     }
 
     /* 
@@ -208,11 +269,22 @@ function lexicalAnalysis(data) {
         errString: '', //错误字符
         errFn: function () { //错误处理函数
         },
-        getContent: function () {}
+        getContent: function (token) {
+            while (true) {
+                nextChar();
+                if (nowChar == -1 || !isTabs(nowChar)) {
+                    token.type = "tabs"
+                    saveToken(token);
+                    i--;
+                    break;
+                }
+                token.value += nowChar;
+            }
+        }
     }
 
     function stringType(str) { //判断传进来的字符类型
-        let typeArray = [delimiterType, operationalCharacterType, tabsType, digitType, letterType];
+        let typeArray = [operationalCharacterType, tabsType, digitType, letterType];
         var type;
         typeArray.forEach(item => {
             if (item.isType(str)) {
@@ -225,11 +297,10 @@ function lexicalAnalysis(data) {
 
     function nextChar() { //返回下一个字符
         i++;
-        let str = data.charAt(i);
-        if (str === '') {
-            str = -1;
+        nowChar = data.charAt(i);
+        if (nowChar === '') {
+            nowChar = -1;
         }
-        return str;
     }
 
     function saveToken(o) { //保存token
@@ -237,43 +308,29 @@ function lexicalAnalysis(data) {
     }
 
     function autoGetContent(typeObj) { //自动获取内容
-        console.log(typeObj.type);
         //判断一个字符是什么类型之后，就进入这个函数，这个函数根据传进来的类型进行识别
-        // console.log('1111');
         const token = {
             type: typeObj.type,
-            value: ''
+            value: nowChar
         }
-        while (true) {
-            token.value += nowStr;
-            nowStr = nextChar();
-            nowStr = typeObj.before == undefined ? nowStr : typeObj.before(token, nowStr); //调用回调函数
-            if (!~nowStr || !typeObj.isType(nowStr, 'while')) { //一直识别，如果不是当前需要的内容，就开始特殊处理
-                saveToken(token);
-                i--;
-                typeObj.callback && typeObj.callback(token); //调用回调函数
-                // console.log('这样子就没了？');
-                break
-            }
-        }
+        typeObj.getContent(token);
     }
 
     //运行主函数
     function main() {
         var typeObj = {
-            'delimiter': delimiterType,
             'operationalCharacter': operationalCharacterType,
             'tabs': tabsType,
             'digit': digitType,
             'letter': letterType
         };
         do {
-            nowStr = nextChar();
-            if (nowStr === " " || nowStr === -1) {
+            nextChar();
+            if (nowChar === " " || nowChar === -1) {
                 continue
             }
-            autoGetContent(typeObj[stringType(nowStr)]);
-        } while (!!~nowStr);
+            autoGetContent(typeObj[stringType(nowChar)]);
+        } while (!!~nowChar);
         return tokenArray
     }
     return main()
